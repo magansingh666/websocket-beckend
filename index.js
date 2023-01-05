@@ -9,18 +9,34 @@ const PORT = 5000 || process.env.PORT;
 const http = require('http').Server(app);
 const socketIO = require('socket.io')(http,{ cors: { origin: "*"} });
 app.use(cors());
+
+let jwt = require('jsonwebtoken');
  
-let {connectToDB, insertIntoUsers} = require('./db')
+let {connectToDB, insertIntoUsers, getUserByEmail} = require('./db')
 
 // connect to Elephant SQL database
 connectToDB()
 
+/*
+
 socketIO.use((socket, next) => {
-  console.log("request received")
-  const token = socket.handshake.auth.token;
-  console.log(token)
-  next();
+  try {
+    const token = socket.handshake.auth.token;
+    let decodedInfo = jwt.verify(token, 'secret');
+    console.log("token decoded from handshake decoded token is---")
+    console.log(decodedInfo)
+    socket.user = decodedInfo
+    next()
+  }catch(err){
+    console.log('there is auth error ')
+    socket.disconnect()
+    
+  }
 });
+
+*/
+
+
 
 const connectedCliens = []
 
@@ -38,39 +54,103 @@ socketIO.on('connection', (socket) => {
     });
 
     socket.on('message', (data) => {
-      console.log(data);
+      console.log("verified user we are sending reply");
+      console.log(socket.user)
       socketIO.emit('messageResponse1', {"hello":"this is reply"});
     });
+
+    //handle new sign up event
+    socket.on('signup', async (data) => {
+      try {
+      console.log(data);
+      const {name, email, password} = data
+      let hash = await bcrypt.hash(password, 10)
+      let queryResult = await insertIntoUsers(name, email, hash)
+      socketIO.to(socket.id).emit('signupResponse', {"message":"success", name, email, hash});
+      }catch(err){
+        socketIO.to(socket.id).emit('signupResponse', {"message":"error", "description": err.message});
+      }      
+    });
+
+
+    // handle login event here 
+    socket.on('login', async (data) => {
+      try {   
+      const {email, password} = data
+      const result = await getUserByEmail(email)      
+      const {id, name, passhash} = result.rows[0]
+      const match = await bcrypt.compare(password, passhash);
+      let token = jwt.sign({ id, name, email }, 'secret');     
+        if(match){
+          socketIO.to(socket.id).emit('loginResponse', {"message":"success", token});
+          return ;
+        } else {
+          socketIO.to(socket.id).emit('loginResponse', {"message":"error"});
+          return;
+        }     
+      
+      }catch(err){
+        socketIO.to(socket.id).emit('loginResponse', {"message":"error", "description": err.message});
+      }      
+    });
+
+
+
+
+    
 
 
 });
 
 
 
-
 app.use(express.json());
-app.get('/register', async (req, res) => {
+app.post('/register', async (req, res) => {
   try {
     const {name, email, password} = req.body
     if(!validator.isEmail(email)){res.status(400).send({"message": "please check email address"})}
     if(!validator.isStrongPassword(password)){res.status(400).send({"message": "password should be strong"})}
     if(!validator.isLength(name, {min : 2, max: 50})){res.status(400).send({"message": "minimum length of name should be 5 and maximum 7"})}  
     let hash = await bcrypt.hash(password, 10)
-    console.log(hash)
     let queryResult = await insertIntoUsers(name, email, hash)
-    res.json({ message: 'success'});
-
+    res.status(200).json({ message: 'success'});
   }catch(err){
     res.status(500).json({message : "error"})
+  } 
+});
+
+
+app.post('/login', async (req, res) => {
+  try {
+  const {email, password} = req.body
+  const result = await getUserByEmail(email)
+  console.log(result.rows[0])
+  
+  if(result.rows[0] == undefined){
+    res.status(400).send({message : "error in email address"})
+  }
+  const {id, name} = result.rows[0]
+  let token = jwt.sign({ id, name, email }, 'secret');
+ 
+
+  res.send({message : "success", token})
+
+  }catch(err){
+    res.status(400).send({message : err.message})
 
   }
- 
+
+
+
+  
 });
+
+
+
 
 let instance = app.listen(PORT, () => {
   console.log(`Server listening on ${PORT}`);
 });
-
 socketIO.listen(instance)
 
 
