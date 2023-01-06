@@ -31,15 +31,16 @@ const connectToDB = async () => {
   await client.query(createNewsTable)
 
   const now = new Date()
-  await client.query(insertNews, ["title1", "subtitle1", "descripti1", 1, now])
-  await client.query(updateNews, ["title11", "subtitle222", "descr1111", now ,1])
+  //await client.query(insertNews, ["title1", "subtitle1", "descripti1", 1, now])
+  //await client.query(updateNews, ["title1166777", "subtitle222", "descr1111", now ,1])
+  for (let i = 0 ; i < 20 ; i++){
+    //await insertNewNewsItem('title' + i, 'subtitle' + i, 'description' + i, 1)
+  }
 
-  const result = await client.query(getAllNews)
-  console.log("here is result of get all news ")
-  console.log(result.rows)
-  console.log(now)
-
-
+  const result = await getAllNewsItems()
+  //console.log("here is result of get all news ")
+  //console.log(result.rows)
+  //console.log(now)
 
 }
 
@@ -68,7 +69,7 @@ const insertNewNewsItem = async (title, subtitle, description, uid) => {
 
 const getAllNewsToday = async () => {
   const now = new Date()
-  const result = await client.query(getAllNewsToday, [now])
+  const result = await client.query(getTodayNews, [now])
   return result
 }
 
@@ -83,7 +84,7 @@ const modifyNewsItem = async (id, title, subtitle, description) => {
 }
 
 
-module.exports = {connectToDB, insertIntoUsers, getUserByEmail, insertNewNewsItem, getAllNewsToday, modifyNewsItem}
+module.exports = {connectToDB, insertIntoUsers, getUserByEmail, insertNewNewsItem, getAllNewsToday, modifyNewsItem, getAllNewsItems}
 
 
 

@@ -19,7 +19,7 @@ app.use(cors());
 
 let jwt = require('jsonwebtoken');
  
-let {connectToDB, insertIntoUsers, getUserByEmail, insertNewNewsItem, getAllNewsToday, modifyNewsItem} = require('./db')
+let {connectToDB, insertIntoUsers, getUserByEmail, insertNewNewsItem, getAllNewsToday, modifyNewsItem, getAllNewsItems} = require('./db')
 
 // connect to Elephant SQL database
 connectToDB()
@@ -34,8 +34,8 @@ socketIO.use((socket, next) => {
     let decodedInfo = jwt.verify(token, 'secret');   
     socket.user = decodedInfo;
   }
-  console.log("decoded user is")
-  console.log(socket.user)  
+ // console.log("decoded user is")
+  //console.log(socket.user)  
   next()
 
   }catch(err){
@@ -60,6 +60,10 @@ socketIO.on('connection', (socket) => {
       console.log(connectedCliens)
     });
 
+
+
+
+
     socket.on('message', async (data, callback) => {
       if(socket.user.id != undefined){
       console.log("verified user we are sending reply");
@@ -71,6 +75,49 @@ socketIO.on('connection', (socket) => {
       }
       
     });
+
+
+    socket.on('todaynews', async (data, callback) => {
+      try {
+        if(socket.user.id != undefined){
+          console.log("we are sending all news items of today ");
+          const result = await getAllNewsToday()    
+          callback(result.rows)
+          }
+          else {
+            callback({"message" : "please login first"})
+          }
+
+      }catch(err){
+        callback({"message" : err.message})
+
+      }  
+      
+    });
+
+
+    socket.on('newnewsitem', async (data, callback) => {
+      try {
+        if(socket.user.id != undefined){
+          const {title, subtitle, description} = data
+          console.log("new news item is being created ....\n\n\n\n\n\n");
+          await insertNewNewsItem(title, subtitle, description)
+          const result = await getAllNewsToday()    
+          callback(result.rows)
+          }
+          else {
+            callback({"message" : "please login first"})
+          }
+
+      }catch(err){
+        callback({"message" : err.message})
+
+      }  
+      
+    });
+
+
+
 
     //handle new sign up event
     socket.on('signup', async (data) => {
