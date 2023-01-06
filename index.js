@@ -10,36 +10,43 @@ const http = require('http').Server(app);
 const socketIO = require('socket.io')(http,{ cors: { origin: "*"} });
 app.use(cors());
 
+
+
+
+
+
+
+
 let jwt = require('jsonwebtoken');
  
-let {connectToDB, insertIntoUsers, getUserByEmail} = require('./db')
+let {connectToDB, insertIntoUsers, getUserByEmail, insertNewNewsItem, getAllNewsToday, modifyNewsItem} = require('./db')
 
 // connect to Elephant SQL database
 connectToDB()
 
-/*
+
 
 socketIO.use((socket, next) => {
-  try {
-    const token = socket.handshake.auth.token;
-    let decodedInfo = jwt.verify(token, 'secret');
-    console.log("token decoded from handshake decoded token is---")
-    console.log(decodedInfo)
-    socket.user = decodedInfo
-    next()
-  }catch(err){
-    console.log('there is auth error ')
-    socket.disconnect()
-    
+  try {  
+  socket.user = {}
+  const token = socket.handshake.auth.token;
+  if(token != undefined){    
+    let decodedInfo = jwt.verify(token, 'secret');   
+    socket.user = decodedInfo;
   }
-});
+  console.log("decoded user is")
+  console.log(socket.user)  
+  next()
 
-*/
-
+  }catch(err){
+    console.log(err.message)
+    next(new Error("Error in decoding token"))
+  }
+  
+})
 
 
 const connectedCliens = []
-
 socketIO.on('connection', (socket) => {
     console.log(`${socket.id} user just connected! list of connected clients is -----`);
     connectedCliens.push(socket.id);
@@ -53,16 +60,21 @@ socketIO.on('connection', (socket) => {
       console.log(connectedCliens)
     });
 
-    socket.on('message', (data) => {
+    socket.on('message', async (data, callback) => {
+      if(socket.user.id != undefined){
       console.log("verified user we are sending reply");
       console.log(socket.user)
-      socketIO.emit('messageResponse1', {"hello":"this is reply"});
+      callback(socket.user)
+      }
+      else {
+        callback({"message" : "please login first"})
+      }
+      
     });
 
     //handle new sign up event
     socket.on('signup', async (data) => {
-      try {
-      console.log(data);
+      try {      
       const {name, email, password} = data
       let hash = await bcrypt.hash(password, 10)
       let queryResult = await insertIntoUsers(name, email, hash)
@@ -82,7 +94,7 @@ socketIO.on('connection', (socket) => {
       const match = await bcrypt.compare(password, passhash);
       let token = jwt.sign({ id, name, email }, 'secret');     
         if(match){
-          socketIO.to(socket.id).emit('loginResponse', {"message":"success", token});
+          socketIO.to(socket.id).emit('loginResponse', {"message":"success", token, id, name, email});
           return ;
         } else {
           socketIO.to(socket.id).emit('loginResponse', {"message":"error"});
@@ -94,17 +106,22 @@ socketIO.on('connection', (socket) => {
       }      
     });
 
-
-
-
-    
-
-
 });
 
-
-
 app.use(express.json());
+let instance = app.listen(PORT, () => {
+  console.log(`Server listening on ${PORT}`);
+});
+socketIO.listen(instance)
+
+
+
+
+
+
+
+/*
+
 app.post('/register', async (req, res) => {
   try {
     const {name, email, password} = req.body
@@ -147,19 +164,6 @@ app.post('/login', async (req, res) => {
 
 
 
-
-let instance = app.listen(PORT, () => {
-  console.log(`Server listening on ${PORT}`);
-});
-socketIO.listen(instance)
-
-
-
-
-
-
-
-/*
 Technique 2 (auto-gen a salt and hash):
 
 bcrypt.hash(myPlaintextPassword, saltRounds, function(err, hash) {

@@ -4,22 +4,43 @@ let conString = process.env.DB_URL
 console.log(conString)
 let client = new pg.Client(conString);
 
-
+// Query Strings related to Users relation....
 const strCreateUsersTable = `CREATE TABLE IF NOT EXISTS Users (id SERIAL PRIMARY KEY, name varchar(255) NOT NULL, email varchar(255) UNIQUE NOT NULL, passHash varchar(255))`
 const strInsertIntoUsers = "INSERT INTO Users (name, email, passHash) Values($1, $2, $3)";
 const strSelectNow = "SELECT NOW()"
 const strSelectAllUsers = "SELECT * FROM Users"
 const strSelectUserByEmail = "SELECT * FROM Users WHERE email = $1"
 const strDropTable = `DROP TABLE IF EXISTS Users`
-const values1 = ["Ravi Saxena", "ravisaxena@gmail.com", "uiuiuhdif456899$34"]
-const values2 = ['Swati Maliwal', 'swatimalival@gmail.com', 'sssssdfdfdfdfd']
+
+
+//Query strings related to News
+const createNewsTable = `CREATE TABLE IF NOT EXISTS News (id SERIAL PRIMARY KEY, title varchar(255) NOT NULL UNIQUE, subtitle varchar(255),description varchar(255) NOT NULL, uid INT, created DATE, modified DATE , FOREIGN KEY (uid) REFERENCES Users(id) )`
+const getAllNews = `SELECT * FROM News`
+const insertNews = `INSERT INTO News (title, subtitle, description, uid ,created) Values($1, $2, $3, $4, $5)`
+const dropNewsTAble = `DROP TABLE IF EXISTS News`
+const getTodayNews = `SELECT * FROM News WHERE created = $1`
+const updateNews = `UPDATE News SET title = $1, Subtitle = $2, description = $3, modified = $4  WHERE id = $5`
+
 
 
 const connectToDB = async () => {
   await client.connect().then(() => console.log('connected to elephant sql database'))
  .catch((err) => console.error('connection error', err.stack))
-  //await client.query(strDropTable)
+  //await client.query(dropNewsTAble)
   await client.query(strCreateUsersTable)
+  await client.query(createNewsTable)
+
+  const now = new Date()
+  await client.query(insertNews, ["title1", "subtitle1", "descripti1", 1, now])
+  await client.query(updateNews, ["title11", "subtitle222", "descr1111", now ,1])
+
+  const result = await client.query(getAllNews)
+  console.log("here is result of get all news ")
+  console.log(result.rows)
+  console.log(now)
+
+
+
 }
 
 const insertIntoUsers = async (name, email, passHash) => {
@@ -39,8 +60,30 @@ const getUserByEmail = async (email) => {
 }
 
 
+const insertNewNewsItem = async (title, subtitle, description, uid) => {
+  const now = new Date()
+  let result = await client.query(insertNews, [title, subtitle, description, uid , now])
+  return result
+}
 
-module.exports = {connectToDB, insertIntoUsers, getUserByEmail}
+const getAllNewsToday = async () => {
+  const now = new Date()
+  const result = await client.query(getAllNewsToday, [now])
+  return result
+}
+
+const getAllNewsItems = async () => {
+  const result = await client.query(getAllNews)
+  return result
+}
+
+const modifyNewsItem = async (id, title, subtitle, description) => {
+  const now = new Date()
+  const result = await client.query(updateNews, [title, subtitle, description, now, id])
+}
+
+
+module.exports = {connectToDB, insertIntoUsers, getUserByEmail, insertNewNewsItem, getAllNewsToday, modifyNewsItem}
 
 
 
