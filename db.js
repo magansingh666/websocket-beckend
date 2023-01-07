@@ -10,28 +10,24 @@ const strInsertIntoUsers = "INSERT INTO Users (name, email, passHash) Values($1,
 const strSelectNow = "SELECT NOW()"
 const strSelectAllUsers = "SELECT * FROM Users"
 const strSelectUserByEmail = "SELECT * FROM Users WHERE email = $1"
-const strDropTable = `DROP TABLE IF EXISTS Users`
+const strDropUsersTable = `DROP TABLE IF EXISTS Users`
 
 
 //Query strings related to News
-const createNewsTable = `CREATE TABLE IF NOT EXISTS News (id SERIAL PRIMARY KEY, title varchar(255) NOT NULL UNIQUE, subtitle varchar(255),description varchar(255) NOT NULL, uid INT, created DATE, modified DATE , FOREIGN KEY (uid) REFERENCES Users(id) )`
+const createNewsTable = `CREATE TABLE IF NOT EXISTS News (id SERIAL PRIMARY KEY, title varchar(255) NOT NULL UNIQUE, subtitle varchar(255),description varchar(255) NOT NULL, name varchar(50) ,uid INT, created DATE, modified DATE , FOREIGN KEY (uid) REFERENCES Users(id) )`
 const getAllNews = `SELECT * FROM News`
-const insertNews = `INSERT INTO News (title, subtitle, description, uid ,created) Values($1, $2, $3, $4, $5)`
+const insertNews = `INSERT INTO News (title, subtitle, description, uid ,created, name) Values($1, $2, $3, $4, $5, $6)`
 const dropNewsTAble = `DROP TABLE IF EXISTS News`
 const getTodayNews = `SELECT * FROM News WHERE created = $1`
 const updateNews = `UPDATE News SET title = $1, Subtitle = $2, description = $3, modified = $4  WHERE id = $5`
 
 
 //Query string related to Comments
- const strCreateCommentTable = `CREATE TABLE IF NOT EXISTS Comment (id SERIAL PRIMARY KEY, ctext varchar(255) NOT NULL, news_id INT, uid INT, created DATE, FOREIGN KEY (uid) REFERENCES Users(id),FOREIGN KEY (news_id) REFERENCES News(id))`
+ const strCreateCommentTable = `CREATE TABLE IF NOT EXISTS Comment (id SERIAL PRIMARY KEY, ctext varchar(255) NOT NULL, news_id INT, uid INT, name varchar(50) ,created DATE, FOREIGN KEY (uid) REFERENCES Users(id),FOREIGN KEY (news_id) REFERENCES News(id))`
  const strGetAllComments = `SELECT * FROM Comment`
-const strInsertComment = `INSERT INTO Comment (ctext, news_id, uid ,created) Values($1, $2, $3, $4)`
+const strInsertComment = `INSERT INTO Comment (ctext, news_id, uid ,created, name) Values($1, $2, $3, $4, $5)`
 const strDropCommentTable = `DROP TABLE IF EXISTS Comment`
 const strGetCommentOfNews = `SELECT * FROM Comment WHERE news_id = $1`
-
-
-
-
 
 
 
@@ -39,7 +35,11 @@ const strGetCommentOfNews = `SELECT * FROM Comment WHERE news_id = $1`
 const connectToDB = async () => {
   await client.connect().then(() => console.log('connected to elephant sql database'))
  .catch((err) => console.error('connection error', err.stack))
-  //await client.query(dropNewsTAble)
+
+  await client.query(strDropCommentTable)
+  await client.query(dropNewsTAble)  
+  await client.query(strDropUsersTable)
+
   await client.query(strCreateUsersTable)
   await client.query(createNewsTable)
   await client.query(strCreateCommentTable)
@@ -79,15 +79,16 @@ const getUserByEmail = async (email) => {
 }
 
 
-const insertNewNewsItem = async (title, subtitle, description, uid) => {
+const insertNewNewsItem = async (title, subtitle, description, uid, name = undefined) => {
   const now = new Date()
-  let result = await client.query(insertNews, [title, subtitle, description, uid , now])
+  let result = await client.query(insertNews, [title, subtitle, description, uid , now, name])
   return result
 }
 
 const getAllNewsToday = async () => {
   const now = new Date()
   const result = await client.query(getTodayNews, [now])  
+  result.rows.reverse()
   return result
 }
 
@@ -102,9 +103,9 @@ const modifyNewsItem = async (id, title, subtitle, description) => {
 }
 
 
-const insertComment = async (ctext, news_id, uid) => {
+const insertComment = async (ctext, news_id, uid, name = undefined) => {
   const now = new Date()
-  const result = await client.query(strInsertComment, [ctext,  news_id, uid, now])
+  const result = await client.query(strInsertComment, [ctext,  news_id, uid, now, name])
   return result
 }
 
@@ -113,6 +114,7 @@ const getCommentOfNews = async (news_id) => {
   result.rows.reverse()
   return result
 }
+
 
 module.exports = {connectToDB, insertIntoUsers, getUserByEmail, insertNewNewsItem, getAllNewsToday, modifyNewsItem, getAllNewsItems, insertComment, getCommentOfNews}
 
