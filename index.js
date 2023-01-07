@@ -19,7 +19,7 @@ app.use(cors());
 
 let jwt = require('jsonwebtoken');
  
-let {connectToDB, insertIntoUsers, getUserByEmail, insertNewNewsItem, getAllNewsToday, modifyNewsItem, getAllNewsItems} = require('./db')
+let {connectToDB, insertIntoUsers, getUserByEmail, insertNewNewsItem, getAllNewsToday, modifyNewsItem, getAllNewsItems, insertComment, getCommentOfNews} = require('./db')
 
 // connect to Elephant SQL database
 connectToDB()
@@ -72,8 +72,7 @@ socketIO.on('connection', (socket) => {
       }
       else {
         callback({"message" : "please login first"})
-      }
-      
+      }      
     });
 
 
@@ -81,7 +80,8 @@ socketIO.on('connection', (socket) => {
       try {
         if(socket.user.id != undefined){
           console.log("we are sending all news items of today ");
-          const result = await getAllNewsToday()    
+          const result = await getAllNewsToday()
+          console.log(result.rows)
           callback(result.rows)
           }
           else {
@@ -90,9 +90,7 @@ socketIO.on('connection', (socket) => {
 
       }catch(err){
         callback({"message" : err.message})
-
-      }  
-      
+      }       
     });
 
 
@@ -112,8 +110,72 @@ socketIO.on('connection', (socket) => {
       }catch(err){
         callback({"message" : err.message})
 
-      }  
-      
+      }     
+    });
+
+
+
+    socket.on('newsitemupdate', async (data, callback) => {
+      try {
+        if(socket.user.id != undefined){
+          const {id, title, subtitle, description} = data
+          console.log("news item being updated  ....\n\n\n\n\n\n");
+          await modifyNewsItem(id, title, subtitle, description)
+          const result = await getAllNewsToday()    
+          callback(result.rows)
+          }
+          else {
+            callback({"message" : "please login first"})
+          }
+
+      }catch(err){
+        callback({"message" : err.message})
+
+      }     
+    });
+
+
+
+
+    socket.on('getcomments', async (data, callback) => {
+      try {
+        if(socket.user.id != undefined){
+          const  {news_id, } = data
+
+          console.log("sending all comments  ");
+          const result = await getCommentOfNews(news_id)
+          console.log(result.rows)
+          callback(result.rows)
+          }
+          else {
+            callback({"message" : "please login first"})
+          }
+
+      }catch(err){
+        callback({"message" : err.message})
+      }       
+    });
+
+
+
+    socket.on('addnewcomment', async (data, callback) => {
+      try {
+        if(socket.user.id != undefined){
+          const  {news_id, ctext, uid, name } = data
+          //{ctext, uid : user.id, name : user.name, news_id : id}, (re
+
+          console.log("adding new comment done  ");
+          await insertComment(ctext, news_id, uid)
+          const result = await getCommentOfNews(news_id)
+          callback(result.rows)
+          }
+          else {
+            callback({"message" : "please login first"})
+          }
+
+      }catch(err){
+        callback({"message" : err.message})
+      }       
     });
 
 

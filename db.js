@@ -22,6 +22,19 @@ const getTodayNews = `SELECT * FROM News WHERE created = $1`
 const updateNews = `UPDATE News SET title = $1, Subtitle = $2, description = $3, modified = $4  WHERE id = $5`
 
 
+//Query string related to Comments
+ const strCreateCommentTable = `CREATE TABLE IF NOT EXISTS Comment (id SERIAL PRIMARY KEY, ctext varchar(255) NOT NULL, news_id INT, uid INT, created DATE, FOREIGN KEY (uid) REFERENCES Users(id),FOREIGN KEY (news_id) REFERENCES News(id))`
+ const strGetAllComments = `SELECT * FROM Comment`
+const strInsertComment = `INSERT INTO Comment (ctext, news_id, uid ,created) Values($1, $2, $3, $4)`
+const strDropCommentTable = `DROP TABLE IF EXISTS Comment`
+const strGetCommentOfNews = `SELECT * FROM Comment WHERE news_id = $1`
+
+
+
+
+
+
+
 
 const connectToDB = async () => {
   await client.connect().then(() => console.log('connected to elephant sql database'))
@@ -29,15 +42,20 @@ const connectToDB = async () => {
   //await client.query(dropNewsTAble)
   await client.query(strCreateUsersTable)
   await client.query(createNewsTable)
+  await client.query(strCreateCommentTable)
 
   const now = new Date()
   //await client.query(insertNews, ["title1", "subtitle1", "descripti1", 1, now])
   //await client.query(updateNews, ["title1166777", "subtitle222", "descr1111", now ,1])
   for (let i = 0 ; i < 20 ; i++){
-    //await insertNewNewsItem('title' + i, 'subtitle' + i, 'description' + i, 1)
+   // await insertNewNewsItem('title' + i, 'subtitle' + i, 'description' + i, 1)
+    //await insertComment('comment text' + i, 3, 1)    
   }
 
-  const result = await getAllNewsItems()
+  //const res = await getCommentOfNews(3)
+  //console.log(res.rows)
+
+  //const result = await getAllNewsItems()
   //console.log("here is result of get all news ")
   //console.log(result.rows)
   //console.log(now)
@@ -69,7 +87,7 @@ const insertNewNewsItem = async (title, subtitle, description, uid) => {
 
 const getAllNewsToday = async () => {
   const now = new Date()
-  const result = await client.query(getTodayNews, [now])
+  const result = await client.query(getTodayNews, [now])  
   return result
 }
 
@@ -84,7 +102,19 @@ const modifyNewsItem = async (id, title, subtitle, description) => {
 }
 
 
-module.exports = {connectToDB, insertIntoUsers, getUserByEmail, insertNewNewsItem, getAllNewsToday, modifyNewsItem, getAllNewsItems}
+const insertComment = async (ctext, news_id, uid) => {
+  const now = new Date()
+  const result = await client.query(strInsertComment, [ctext,  news_id, uid, now])
+  return result
+}
+
+const getCommentOfNews = async (news_id) => {
+  const result = await client.query(strGetCommentOfNews, [news_id])
+  result.rows.reverse()
+  return result
+}
+
+module.exports = {connectToDB, insertIntoUsers, getUserByEmail, insertNewNewsItem, getAllNewsToday, modifyNewsItem, getAllNewsItems, insertComment, getCommentOfNews}
 
 
 
