@@ -15,7 +15,7 @@ const strSelectAllUsers = `SELECT * FROM Users`;
 const strSelectUserByEmail = `SELECT * FROM Users WHERE email = $1`;
 const strDropUsersTable = `DROP TABLE IF EXISTS Users`;
 
-//Query strings related to News
+//Query strings related to News. 
 const createNewsTable = `CREATE TABLE IF NOT EXISTS News (id SERIAL PRIMARY KEY, title varchar(255) NOT NULL UNIQUE, subtitle varchar(255),description varchar(255) NOT NULL, name varchar(50) ,uid INT, created DATE, modified DATE , FOREIGN KEY (uid) REFERENCES Users(id) )`;
 const getAllNews = `SELECT * FROM News`;
 const insertNews = `INSERT INTO News (title, subtitle, description, uid ,created, name) Values($1, $2, $3, $4, $5, $6)`;
@@ -56,13 +56,13 @@ const insertIntoUsers = async (name, email, passHash) => {
 // function for getting all users from db
 const getAllUsers = async () => {
   let result = await client.query(strSelectAllUsers);
-  console.log(result.rows);
+  return result;
 };
 
 // function to search a user by email
 const getUserByEmail = async (email) => {
   let result = await client.query(strSelectUserByEmail, [email]);
-  //console.log(result)
+  
   return result;
 };
 
