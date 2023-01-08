@@ -191,7 +191,7 @@ socketIO.on('connection', (socket) => {
 
 
     //handle new sign up event 
-    socket.on('signup', async (data) => {
+    socket.on('signup', async (data, callback) => {
       try {      
       const {name, email, password} = data
       let hash = await bcrypt.hash(password, 10)
@@ -204,7 +204,7 @@ socketIO.on('connection', (socket) => {
 
 
     // handle login event here 
-    socket.on('login', async (data) => {
+    socket.on('login', async (data, callback) => {
       try {   
       const {email, password} = data
       const result = await getUserByEmail(email)      

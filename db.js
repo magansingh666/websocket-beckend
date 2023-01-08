@@ -36,9 +36,9 @@ const connectToDB = async () => {
   await client.connect().then(() => console.log('connected to elephant sql database'))
  .catch((err) => console.error('connection error', err.stack))
 
-  await client.query(strDropCommentTable)
-  await client.query(dropNewsTAble)  
-  await client.query(strDropUsersTable)
+  //await client.query(strDropCommentTable)
+  //await client.query(dropNewsTAble)  
+  //await client.query(strDropUsersTable)
 
   await client.query(strCreateUsersTable)
   await client.query(createNewsTable)
