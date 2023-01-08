@@ -90,9 +90,14 @@ socketIO.on('connection', (socket) => {
       try {
         if(socket.user.id != undefined){
           const {title, subtitle, description, uid, name} = data
+
+          if(!validator.isLength(title, { min: 2, max: 200 }) || !validator.isLength(description, { min: 2, max: 1000 }) ){
+            callback({"message":"error", "description": "please provide inputs in proper format"});
+            return
+          }
           
           await insertNewNewsItem(title, subtitle, description, uid, name)
-          const result = await getAllNewsToday()    
+          const result = await getAllNewsToday()
           callback(result.rows)
           socket.broadcast.emit('updatenews', result.rows);
 
@@ -113,6 +118,11 @@ socketIO.on('connection', (socket) => {
       try {
         if(socket.user.id != undefined){
           const {id, title, subtitle, description} = data
+
+          if(!validator.isLength(title, { min: 2, max: 200 }) || !validator.isLength(description, { min: 2, max: 1000 }) ){
+            callback({"message":"error", "description": "please provide inputs in proper format"});
+            return
+          }
           
           await modifyNewsItem(id, title, subtitle, description)
           const result = await getAllNewsToday()    
@@ -161,7 +171,12 @@ socketIO.on('connection', (socket) => {
     socket.on('addnewcomment', async (data, callback) => {
       try {
         if(socket.user.id != undefined){
-          const  {news_id, ctext, uid, name } = data     
+          const  {news_id, ctext, uid, name } = data
+          
+          if(!validator.isLength(ctext, { min: 2, max: 500 }) ){
+            callback({"message":"error", "description": "comment length should be between 2 and 500 characters"});
+            return
+          }
           
           socket.join(news_id)
 
@@ -188,14 +203,19 @@ socketIO.on('connection', (socket) => {
     socket.on('signup', async (data, callback) => {
       try {      
       const {name, email, password} = data
+      
+      //validation 
+      if(!validator.isEmail(email) || !validator.isLength(name, { min: 2, max: 40 }) || !validator.isStrongPassword(password)){
+        callback({"message":"error", "description": "please provide inputs in proper format"});
+        return
+      }
+
       let hash = await bcrypt.hash(password, 10)
       await insertIntoUsers(name, email, hash)
       callback({"message":"success", name, email, hash});
       
-      }catch(err){
-        
-        callback({"message":"error", "description": err.message});
-        
+      }catch(err){        
+        callback({"message":"error", "description": err.message});        
       }      
     });
 
@@ -204,6 +224,13 @@ socketIO.on('connection', (socket) => {
     socket.on('login', async (data, callback) => {
       try {   
       const {email, password} = data
+
+      if(!validator.isEmail(email) || !validator.isStrongPassword(password)){
+        callback({"message":"error", "description": "please provide inputs in proper format"});
+        return
+      }
+
+
       const result = await getUserByEmail(email)      
       const {id, name, passhash} = result.rows[0]
       const match = await bcrypt.compare(password, passhash);
