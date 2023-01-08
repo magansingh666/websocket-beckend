@@ -58,7 +58,7 @@ const connectToDB = async () => {
   //const result = await getAllNewsItems()
   //console.log("here is result of get all news ")
   //console.log(result.rows)
-  //console.log(now)
+  //console.log(now) lVR173Umu30gnF65AACa
 
 }
 

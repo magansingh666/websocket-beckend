@@ -195,10 +195,13 @@ socketIO.on('connection', (socket) => {
       try {      
       const {name, email, password} = data
       let hash = await bcrypt.hash(password, 10)
-      let queryResult = await insertIntoUsers(name, email, hash)
-      socketIO.to(socket.id).emit('signupResponse', {"message":"success", name, email, hash});
+      await insertIntoUsers(name, email, hash)
+      callback({"message":"success", name, email, hash});
+      
       }catch(err){
-        socketIO.to(socket.id).emit('signupResponse', {"message":"error", "description": err.message});
+        
+        callback({"message":"error", "description": err.message});
+        
       }      
     });
 
@@ -212,15 +215,18 @@ socketIO.on('connection', (socket) => {
       const match = await bcrypt.compare(password, passhash);
       let token = jwt.sign({ id, name, email }, 'secret');     
         if(match){
-          socketIO.to(socket.id).emit('loginResponse', {"message":"success", token, id, name, email});
+          
+          callback({"message":"success", token, id, name, email})
           return ;
         } else {
-          socketIO.to(socket.id).emit('loginResponse', {"message":"error"});
+          
+          callback({"message":"error"})
           return;
         }     
       
       }catch(err){
-        socketIO.to(socket.id).emit('loginResponse', {"message":"error", "description": err.message});
+        
+        callback({"message":"error", "description": err.message})
       }      
     });
 
